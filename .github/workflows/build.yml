@@ -1,1 +1,30 @@
+name: Build release
 
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Locate source
+        run: |
+          if [ ! -f Makefile ]; then
+            zip=$(ls *source*.zip | head -n 1)
+            unzip -q "$zip" -d src_unzipped
+            d=$(dirname "$(find src_unzipped -name Makefile | head -n 1)")
+            echo "SRC_DIR=$d" >> "$GITHUB_ENV"
+          else
+            echo "SRC_DIR=." >> "$GITHUB_ENV"
+          fi
+
+      - name: Build ARM release
+        run: cd "$SRC_DIR" && sh scripts/build-arm.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VelvetChords-release
+          path: ${{ env.SRC_DIR }}/dist/*.zip
